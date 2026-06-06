@@ -1,0 +1,338 @@
+import { t } from "elysia";
+
+import { __transformDate__ } from "./__transformDate__";
+
+import { __nullable__ } from "./__nullable__";
+
+export const UserPlain = t.Object(
+  {
+    id: t.String(),
+    email: t.String(),
+    name: t.String(),
+    bio: __nullable__(t.String()),
+    image: __nullable__(t.String()),
+    premium: t.Boolean(),
+    emailVerified: t.Boolean(),
+    createdAt: t.Date(),
+    updatedAt: t.Date(),
+  },
+  { additionalProperties: false },
+);
+
+export const UserRelations = t.Object(
+  {
+    sessions: t.Array(
+      t.Object(
+        {
+          id: t.String(),
+          userId: t.String(),
+          token: t.String(),
+          expiresAt: t.Date(),
+          ipAddress: __nullable__(t.String()),
+          userAgent: __nullable__(t.String()),
+          createdAt: t.Date(),
+          updatedAt: t.Date(),
+        },
+        { additionalProperties: false },
+      ),
+      { additionalProperties: false },
+    ),
+    accounts: t.Array(
+      t.Object(
+        {
+          id: t.String(),
+          userId: t.String(),
+          accountId: t.String(),
+          providerId: t.String(),
+          accessToken: __nullable__(t.String()),
+          refreshToken: __nullable__(t.String()),
+          idToken: __nullable__(t.String()),
+          accessTokenExpiresAt: __nullable__(t.Date()),
+          refreshTokenExpiresAt: __nullable__(t.Date()),
+          scope: __nullable__(t.String()),
+          password: __nullable__(t.String()),
+          createdAt: t.Date(),
+          updatedAt: t.Date(),
+        },
+        { additionalProperties: false },
+      ),
+      { additionalProperties: false },
+    ),
+  },
+  { additionalProperties: false },
+);
+
+export const UserPlainInputCreate = t.Object(
+  {
+    email: t.String(),
+    name: t.String(),
+    bio: t.Optional(__nullable__(t.String())),
+    image: t.Optional(__nullable__(t.String())),
+    premium: t.Optional(t.Boolean()),
+    emailVerified: t.Optional(t.Boolean()),
+  },
+  { additionalProperties: false },
+);
+
+export const UserPlainInputUpdate = t.Object(
+  {
+    email: t.Optional(t.String()),
+    name: t.Optional(t.String()),
+    bio: t.Optional(__nullable__(t.String())),
+    image: t.Optional(__nullable__(t.String())),
+    premium: t.Optional(t.Boolean()),
+    emailVerified: t.Optional(t.Boolean()),
+  },
+  { additionalProperties: false },
+);
+
+export const UserRelationsInputCreate = t.Object(
+  {
+    sessions: t.Optional(
+      t.Object(
+        {
+          connect: t.Array(
+            t.Object(
+              {
+                id: t.String({ additionalProperties: false }),
+              },
+              { additionalProperties: false },
+            ),
+            { additionalProperties: false },
+          ),
+        },
+        { additionalProperties: false },
+      ),
+    ),
+    accounts: t.Optional(
+      t.Object(
+        {
+          connect: t.Array(
+            t.Object(
+              {
+                id: t.String({ additionalProperties: false }),
+              },
+              { additionalProperties: false },
+            ),
+            { additionalProperties: false },
+          ),
+        },
+        { additionalProperties: false },
+      ),
+    ),
+  },
+  { additionalProperties: false },
+);
+
+export const UserRelationsInputUpdate = t.Partial(
+  t.Object(
+    {
+      sessions: t.Partial(
+        t.Object(
+          {
+            connect: t.Array(
+              t.Object(
+                {
+                  id: t.String({ additionalProperties: false }),
+                },
+                { additionalProperties: false },
+              ),
+              { additionalProperties: false },
+            ),
+            disconnect: t.Array(
+              t.Object(
+                {
+                  id: t.String({ additionalProperties: false }),
+                },
+                { additionalProperties: false },
+              ),
+              { additionalProperties: false },
+            ),
+          },
+          { additionalProperties: false },
+        ),
+      ),
+      accounts: t.Partial(
+        t.Object(
+          {
+            connect: t.Array(
+              t.Object(
+                {
+                  id: t.String({ additionalProperties: false }),
+                },
+                { additionalProperties: false },
+              ),
+              { additionalProperties: false },
+            ),
+            disconnect: t.Array(
+              t.Object(
+                {
+                  id: t.String({ additionalProperties: false }),
+                },
+                { additionalProperties: false },
+              ),
+              { additionalProperties: false },
+            ),
+          },
+          { additionalProperties: false },
+        ),
+      ),
+    },
+    { additionalProperties: false },
+  ),
+);
+
+export const UserWhere = t.Partial(
+  t.Recursive(
+    (Self) =>
+      t.Object(
+        {
+          AND: t.Union([Self, t.Array(Self, { additionalProperties: false })]),
+          NOT: t.Union([Self, t.Array(Self, { additionalProperties: false })]),
+          OR: t.Array(Self, { additionalProperties: false }),
+          id: t.String(),
+          email: t.String(),
+          name: t.String(),
+          bio: t.String(),
+          image: t.String(),
+          premium: t.Boolean(),
+          emailVerified: t.Boolean(),
+          createdAt: t.Date(),
+          updatedAt: t.Date(),
+        },
+        { additionalProperties: false },
+      ),
+    { $id: "User" },
+  ),
+);
+
+export const UserWhereUnique = t.Recursive(
+  (Self) =>
+    t.Intersect(
+      [
+        t.Partial(
+          t.Object(
+            { id: t.String(), email: t.String(), name: t.String() },
+            { additionalProperties: false },
+          ),
+          { additionalProperties: false },
+        ),
+        t.Union(
+          [
+            t.Object({ id: t.String() }),
+            t.Object({ email: t.String() }),
+            t.Object({ name: t.String() }),
+          ],
+          { additionalProperties: false },
+        ),
+        t.Partial(
+          t.Object({
+            AND: t.Union([
+              Self,
+              t.Array(Self, { additionalProperties: false }),
+            ]),
+            NOT: t.Union([
+              Self,
+              t.Array(Self, { additionalProperties: false }),
+            ]),
+            OR: t.Array(Self, { additionalProperties: false }),
+          }),
+          { additionalProperties: false },
+        ),
+        t.Partial(
+          t.Object(
+            {
+              id: t.String(),
+              email: t.String(),
+              name: t.String(),
+              bio: t.String(),
+              image: t.String(),
+              premium: t.Boolean(),
+              emailVerified: t.Boolean(),
+              createdAt: t.Date(),
+              updatedAt: t.Date(),
+            },
+            { additionalProperties: false },
+          ),
+        ),
+      ],
+      { additionalProperties: false },
+    ),
+  { $id: "User" },
+);
+
+export const UserSelect = t.Partial(
+  t.Object(
+    {
+      id: t.Boolean(),
+      email: t.Boolean(),
+      name: t.Boolean(),
+      bio: t.Boolean(),
+      image: t.Boolean(),
+      premium: t.Boolean(),
+      emailVerified: t.Boolean(),
+      createdAt: t.Boolean(),
+      updatedAt: t.Boolean(),
+      sessions: t.Boolean(),
+      accounts: t.Boolean(),
+      _count: t.Boolean(),
+    },
+    { additionalProperties: false },
+  ),
+);
+
+export const UserInclude = t.Partial(
+  t.Object(
+    { sessions: t.Boolean(), accounts: t.Boolean(), _count: t.Boolean() },
+    { additionalProperties: false },
+  ),
+);
+
+export const UserOrderBy = t.Partial(
+  t.Object(
+    {
+      id: t.Union([t.Literal("asc"), t.Literal("desc")], {
+        additionalProperties: false,
+      }),
+      email: t.Union([t.Literal("asc"), t.Literal("desc")], {
+        additionalProperties: false,
+      }),
+      name: t.Union([t.Literal("asc"), t.Literal("desc")], {
+        additionalProperties: false,
+      }),
+      bio: t.Union([t.Literal("asc"), t.Literal("desc")], {
+        additionalProperties: false,
+      }),
+      image: t.Union([t.Literal("asc"), t.Literal("desc")], {
+        additionalProperties: false,
+      }),
+      premium: t.Union([t.Literal("asc"), t.Literal("desc")], {
+        additionalProperties: false,
+      }),
+      emailVerified: t.Union([t.Literal("asc"), t.Literal("desc")], {
+        additionalProperties: false,
+      }),
+      createdAt: t.Union([t.Literal("asc"), t.Literal("desc")], {
+        additionalProperties: false,
+      }),
+      updatedAt: t.Union([t.Literal("asc"), t.Literal("desc")], {
+        additionalProperties: false,
+      }),
+    },
+    { additionalProperties: false },
+  ),
+);
+
+export const User = t.Composite([UserPlain, UserRelations], {
+  additionalProperties: false,
+});
+
+export const UserInputCreate = t.Composite(
+  [UserPlainInputCreate, UserRelationsInputCreate],
+  { additionalProperties: false },
+);
+
+export const UserInputUpdate = t.Composite(
+  [UserPlainInputUpdate, UserRelationsInputUpdate],
+  { additionalProperties: false },
+);

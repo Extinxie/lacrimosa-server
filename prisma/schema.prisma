@@ -1,0 +1,470 @@
+generator client {
+  provider   = "prisma-client"
+  // output     = "../src/generated/prisma"
+  output     = "../generated/prisma"
+  runtime    = "bun"
+  engineType = "client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator prismabox {
+  provider                    = "prismabox"
+  typeboxImportDependencyName = "elysia"
+  typeboxImportVariableName   = "t"
+  inputModel                  = true
+  output                      = "../generated/prismabox"
+}
+
+model Anime {
+  // Primary fields
+  id   String @id @default(uuid())
+  slug String @unique
+
+  // External IDs
+  shikimoriId   Int     @unique @map("shikimori_id")
+  myanimelistId Int     @unique @map("myanimelist_id")
+  anilistId     Int?    @unique @map("anilist_id")
+  anilibriaId   Int?    @unique @map("anilibria_id")
+  kinopoiskId   Int?    @unique @map("kinopoisk_id")
+  imdbId        String? @unique @map("imdb_id")
+  kodikId       String? @unique @map("kodik_id")
+  aksorId       String? @unique @map("aksor_id")
+
+  // Titles
+  nativeTitle  String  @map("native_title")
+  russianTitle String? @map("russian_title")
+  englishTitle String? @map("english_title")
+
+  // Media URLs
+  poster String? @db.Text
+  banner String? @db.Text
+
+  // Description and text fields
+  description String?  @db.Text
+  synonyms    String[]
+  note        String?  @db.Text
+  hashtag     String?
+
+  // Enum fields
+  country AnimeCountry @default(JAPAN)
+  status  AnimeStatus  @default(ONGOING)
+  type    AnimeType    @default(TV)
+  rating  AnimeRating  @default(SAFE)
+  season  AnimeSeason?
+
+  // Year and time-based fields
+  year          Int?
+  airedOn       DateTime? @map("aired_on")
+  releasedOn    DateTime? @map("released_on")
+  nextEpisodeAt DateTime? @map("next_episode_at")
+
+  // Episodes info
+  episodesCount Int? @map("episodes_count")
+  episodesAired Int? @map("episodes_aired")
+  duration      Int?
+
+  // Rating from different sources
+  shikimoriRating   Float @default(0) @map("shikimori_rating")
+  myanimelistRating Float @default(0) @map("myanimelist_rating")
+  anilistRating     Int   @default(0) @map("anilist_rating")
+  kinopoiskRating   Float @default(0) @map("kinopoisk_rating")
+  imdbRating        Float @default(0) @map("imdb_rating")
+
+  // User ratings
+  averageRating  Float @default(0) @map("average_rating")
+  bayesianRating Float @default(0) @map("bayesian_rating")
+
+  // Boolean flags
+  hasLgbt    Boolean @default(false) @map("has_lgbt")
+  isCensored Boolean @default(false) @map("is_censored")
+  isDeleted  Boolean @default(false) @map("is_deleted")
+
+  // Relations
+  licensors   Licensor[]
+  episodes    Episode[]
+  tags        Tag[]
+  studios     Studio[]
+  screenshots Screenshot[]
+  videos      Video[]
+
+  // Timestamps
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("animes")
+}
+
+model Licensor {
+  // Primary fields
+  id String @id @default(uuid())
+
+  // Basic data
+  countries String[] @db.Text
+  title     String   @unique
+
+  // Relations
+  anime Anime[]
+
+  // Timestamps
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  @@map("licensors")
+}
+
+model Episode {
+  // Primary fields
+  id String @id @default(uuid())
+
+  // Episode info
+  number   Int
+  duration Int?
+
+  // Relations
+  anime   Anime  @relation(fields: [animeId], references: [id])
+  animeId String @map("anime_id")
+
+  screenshots  Screenshot[]
+  translations Translation[]
+  // bookmarks    Bookmark[]
+
+  // Timestamps
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  @@index([animeId, number])
+  @@map("episodes")
+}
+
+model Translation {
+  // Primary Fields
+  id String @id @default(uuid())
+
+  // Translation type and player
+  type   TranslationType
+  player TranslationPlayer
+
+  // Source URLs
+  source Json
+
+  // Relations
+  episode   Episode @relation(fields: [episodeId], references: [id])
+  episodeId String  @map("episode_id")
+
+  translator   Translator @relation(fields: [translatorId], references: [id])
+  translatorId String     @map("translator_id")
+
+  // bookmarks Bookmark[]
+
+  // Timestamps
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  @@index([episodeId, translatorId])
+  @@map("translations")
+}
+
+model Translator {
+  // Primary Fields
+  id String @id @default(uuid())
+
+  // Basic data
+  title String @unique
+
+  // Relations
+  translations Translation[]
+
+  // Timestamps
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  @@map("translators")
+}
+
+model Tag {
+  // Primary Fields
+  id String @id @default(uuid())
+
+  // External IDs
+  shikimoriId Int @unique @map("shikimori_id")
+
+  // Titles
+  russianTitle String @unique @map("russian_title")
+  englishTitle String @unique @map("english_title")
+
+  // Classification
+  type         TagType
+  isRestricted Boolean @default(false) @map("is_restricted")
+
+  // Relations
+  animes Anime[]
+
+  // Timestamps
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  @@map("tags")
+}
+
+model Studio {
+  // Primary Fields
+  id String @id @default(uuid())
+
+  // Basic data
+  title String @unique
+
+  // Relations
+  animes Anime[]
+
+  // Timestamps
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  @@map("studios")
+}
+
+model Screenshot {
+  // Primary Fields
+  id String @id @default(uuid())
+
+  // URLs
+  originalUrl String  @map("original_url")
+  previewUrl  String? @map("preview_url")
+
+  // Relations
+  anime   Anime?  @relation(fields: [animeId], references: [id])
+  animeId String? @map("anime_id")
+
+  episode   Episode? @relation(fields: [episodeId], references: [id])
+  episodeId String?  @map("episode_id")
+
+  // Timestamps
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  @@map("screenshots")
+}
+
+model Video {
+  // Primary Fields
+  id String @id @default(uuid())
+
+  // Video info
+  url   String
+  title String
+
+  playerUrl String @map("player_url")
+  imageUrl  String @map("image_url")
+
+  // Relations
+  anime   Anime  @relation(fields: [animeId], references: [id])
+  animeId String @map("anime_id")
+
+  // Timestamps
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @updatedAt @map("updated_at")
+
+  @@map("videos")
+}
+
+enum AnimeCountry {
+  OTHER
+  JAPAN
+  CHINA
+  KOREA
+}
+
+enum AnimeStatus {
+  ANNOUNCE
+  ONGOING
+  RELEASED
+}
+
+enum AnimeType {
+  TV
+  MOVIE
+  OVA
+  ONA
+  SPECIAL
+  MUSIC
+  PV
+  CM
+}
+
+enum AnimeRating {
+  SAFE
+  SUGGESTIVE
+  QUESTIONABLE
+  EXPLICIT
+}
+
+enum AnimeSeason {
+  WINTER
+  SPRING
+  SUMMER
+  AUTUMN
+}
+
+enum TranslationPlayer {
+  KODIK
+  LIBRIA
+}
+
+enum TranslationType {
+  VOICE
+  SUBTITLES
+}
+
+enum TagType {
+  DEMOGRAPHIC
+  GENRE
+  THEME
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  name          String    @unique
+  bio           String?
+  image         String?
+  premium       Boolean   @default(false)
+  emailVerified Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Account {
+  id                    String    @id @default(uuid())
+  userId                String
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@map("accounts")
+}
+
+model Verification {
+  id         String   @id @default(uuid())
+  identifier String
+  value      String   @unique
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("verifications")
+}
+
+// model User {
+//   id String @id @default(cuid())
+
+//   // validate user
+//   email    String @unique
+//   password String
+
+//   // contact user
+//   username  String  @unique @db.VarChar(60)
+//   avatar    String?
+//   aboutUser String?
+
+//   // utils
+//   isOnline     Boolean @default(false)
+//   refreshToken String?
+
+//   // date time
+//   createdAt DateTime  @default(now()) @map("created_at")
+//   updatedAt DateTime? @updatedAt @map("updated_at")
+//   deletedAt DateTime? @map("deleted_at")
+
+//   @@map("users")
+// }
+
+// model user {
+//   id            String   @id @default(cuid())
+//   email         String   @unique
+//   emailVerified Boolean  @default(false)
+//   name          String?
+//   username      String   @unique
+//   password      String?
+//   avatar        String?
+//   bannerProfile String?
+//   aboutUser     String?
+//   createdAt     DateTime @default(now())
+//   updatedAt     DateTime @updatedAt
+
+//   // accounts Account[]
+//   // sessions Session[]
+
+//   @@map("users")
+// }
+
+// model Account {
+//   id           String    @id @default(cuid())
+//   userId       String
+//   type         String
+//   provider     String
+//   providerId   String
+//   refreshToken String?
+//   accessToken  String?
+//   expiresAt    DateTime?
+//   tokenType    String?
+//   scope        String?
+//   idToken      String?
+//   createdAt    DateTime  @default(now())
+//   updatedAt    DateTime  @updatedAt
+
+//   user User @relation(fields: [userId], references: [id])
+// }
+
+// model Session {
+//   id        String   @id @default(cuid())
+//   userId    String
+//   token     String   @unique
+//   expiresAt DateTime
+//   ipAddress String?
+//   userAgent String?
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+
+//   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+// }
+
+// model Verification {
+//   id         String   @id @default(cuid())
+//   identifier String
+//   value      String
+//   expiresAt  DateTime
+//   createdAt  DateTime @default(now())
+//   updatedAt  DateTime @updatedAt
+// }
