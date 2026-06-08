@@ -1,2 +1,2 @@
 ### лакримоза
-связь - ExtinctIT
+связь telegram - ExtinctIT
