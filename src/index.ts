@@ -5,7 +5,7 @@ import Elysia from 'elysia'
 import { betterAuthplugin, OpenAPI } from './lib/http/plugins/better-auth'
 import { UsersProfiles } from './controllers/auth/profile-get'
 import { ShikimoriFetch } from './controllers/parser-fetch'
-import { getAwayUser } from './controllers'
+import { animeControllers, getAwayUser } from './controllers'
 
 const app = new Elysia()
 	.use(
@@ -32,5 +32,6 @@ const app = new Elysia()
 	.listen(3001)
 	.use(ShikimoriFetch)
 	.use(getAwayUser)
+	.use(animeControllers)
 
 console.log(`${app} 🦊 Elysia running on http://localhost:3001`)

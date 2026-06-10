@@ -5,11 +5,14 @@ export const animeControllers = new Elysia({
 	name: '@controller/post-animes',
 	prefix: '/post-animes'
 })
+
+	// тейк 50 тайтлов для глав странциы
 	.get('/animes', async () => {
 		const animes = await prisma.anime.findMany({ take: 50 })
 		return { data: animes }
 	})
 
+	// последние тайтлы по выхрду не учитывая FAQ
 	.get('/latests', async () => {
 		const latestsReales = await prisma.anime.findMany({
 			where: {
@@ -39,11 +42,13 @@ export const animeControllers = new Elysia({
 		return latestsReales
 	})
 
+	// открытие аниме тайтла по айди (сравнение slug)
+	// переделать
 	.get('/:id', async ({ params: { id } }) => {
 		try {
 			const result = await prisma.anime.findUnique({
 				where: {
-					id: id
+					slug: id
 				},
 				select: {
 					rating: true,
@@ -54,9 +59,65 @@ export const animeControllers = new Elysia({
 					episodesCount: true
 				}
 			})
-			return result
+			return { result }
 		} catch (e) {
 			console.error(e)
-			return []
 		}
 	})
+
+	.post(
+		'',
+		async ({ body: { query, limit = 20 } }) => {
+			const animes = await prisma.anime.findMany({
+				where: {
+					isDeleted: false,
+					OR: [
+						{
+							nativeTitle: {
+								contains: query,
+								mode: 'insensitive'
+							}
+						},
+						{
+							russianTitle: {
+								contains: query,
+								mode: 'insensitive'
+							}
+						},
+						{
+							englishTitle: {
+								contains: query,
+								mode: 'insensitive'
+							}
+						}
+					]
+				},
+				take: limit,
+				orderBy: {
+					shikimoriRating: 'desc'
+				},
+				select: {
+					id: true,
+					slug: true,
+					shikimoriId: true,
+					nativeTitle: true,
+					russianTitle: true,
+					englishTitle: true,
+					poster: true,
+					type: true,
+					status: true,
+					episodesCount: true,
+					shikimoriRating: true,
+					releasedOn: true
+				}
+			})
+
+			return { data: animes }
+		},
+		{
+			body: t.Object({
+				query: t.String({ minLength: 1 }),
+				limit: t.Optional(t.Number({ minimum: 1, maximum: 50 }))
+			})
+		}
+	)
