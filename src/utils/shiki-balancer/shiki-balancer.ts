@@ -29,5 +29,38 @@ export const mapShikimoriKind = (
   return map[kind] || "TV";
 };
 
-// const dataAnimesForSlug
+const DEMOGRAPHIC_GENRES = new Set([
+  "shounen",
+  "shoujo",
+  "seinen",
+  "josei",
+  "kids",
+]);
+
+export const mapShikimoriGenreType = (
+  genreName: string,
+): "DEMOGRAPHIC" | "GENRE" => {
+  return DEMOGRAPHIC_GENRES.has(genreName.toLowerCase())
+    ? "DEMOGRAPHIC"
+    : "GENRE";
+};
+
+export const mapShikimoriRating = (
+  rating: string,
+): "SAFE" | "SUGGESTIVE" | "QUESTIONABLE" | "EXPLICIT" => {
+  switch (rating) {
+    case "g":
+    case "pg":
+      return "SAFE";
+    case "pg_13":
+      return "SUGGESTIVE";
+    case "r":
+      return "QUESTIONABLE";
+    case "r_plus":
+    case "rx":
+      return "EXPLICIT";
+    default:
+      return "SAFE";
+  }
+};
 

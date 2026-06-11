@@ -56,15 +56,25 @@ export const animeControllers = new Elysia({
 					englishTitle: true,
 					nativeTitle: true,
 					russianTitle: true,
-					episodesCount: true
+					episodesCount: true,
+					description: true,
+					tags: true,
+					studios: true,
+					licensors: true,
+					episodes: {
+						orderBy: {
+							number: 'asc'
+						}
+					}
 				}
 			})
-			return { result }
+			return result
 		} catch (e) {
 			console.error(e)
 		}
 	})
 
+	// серч
 	.post(
 		'',
 		async ({ body: { query, limit = 20 } }) => {

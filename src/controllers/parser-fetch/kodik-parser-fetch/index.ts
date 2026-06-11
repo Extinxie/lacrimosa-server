@@ -24,7 +24,6 @@ export const KodikParserLists = new Elysia({
       return [];
     }
     const data: KodikApiResponse = await response.json();
-    const results = [];
 
     for (const item of data.results) {
       try {

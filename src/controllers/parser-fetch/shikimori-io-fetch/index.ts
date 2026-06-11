@@ -2,102 +2,143 @@ import Elysia from 'elysia'
 import { $Enums } from '../../../../generated/prisma/client'
 import { apiShikimoriGlobal } from '../../../constants/ports'
 import {
+	mapShikimoriGenreType,
 	mapShikimoriKind,
+	mapShikimoriRating,
 	mapShikimoriStatus
 } from '../../../utils/shiki-balancer/shiki-balancer'
-import { RawShikimoriApiResponse } from '../../../@types/types/shiki.type'
+import { fetchShikimoriJson } from '../../../utils/shiki-balancer/shikimori-api'
+import {
+	RawShikimoriApiDetail,
+	RawShikimoriApiResponse,
+	ShikimoriGenre
+} from '../../../@types/types/shiki.type'
 import { prisma } from '../../../lib/prisma'
-import { animeControllers } from '../../anim/logic-animes'
+
+const upsertGenreTags = async (genres: ShikimoriGenre[]) => {
+	const tagIds: { id: string }[] = []
+
+	for (const genre of genres) {
+		const russianTitle = genre.russian ?? genre.name
+		const tag = await prisma.tag.upsert({
+			where: { shikimoriId: genre.id },
+			update: {
+				russianTitle,
+				englishTitle: genre.name,
+				type: mapShikimoriGenreType(genre.name)
+			},
+			create: {
+				shikimoriId: genre.id,
+				russianTitle,
+				englishTitle: genre.name,
+				type: mapShikimoriGenreType(genre.name)
+			}
+		})
+		tagIds.push({ id: tag.id })
+	}
+
+	return tagIds
+}
+
+const buildAnimeData = (item: RawShikimoriApiDetail) => ({
+	shikimoriId: item.id,
+	myanimelistId: item.myanimelist_id ?? item.id,
+	nativeTitle: item.name,
+	russianTitle: item.russian,
+	englishTitle: item.name,
+	poster: item.image.original
+		? `${apiShikimoriGlobal}${item.image.original}`
+		: null,
+	description: item.description,
+	synonyms: item.synonyms ?? [],
+	country: $Enums.AnimeCountry.JAPAN,
+	status: mapShikimoriStatus(item.status),
+	type: mapShikimoriKind(item.kind),
+	rating: mapShikimoriRating(item.rating),
+	year: item.aired_on ? new Date(item.aired_on).getFullYear() : null,
+	airedOn: item.aired_on ? new Date(item.aired_on) : null,
+	releasedOn: item.released_on ? new Date(item.released_on) : null,
+	episodesCount: item.episodes,
+	episodesAired: item.episodes_aired,
+	duration: item.duration || null,
+	shikimoriRating: parseFloat(item.score) || 0,
+	isCensored: false,
+	isDeleted: false
+})
 
 export const ShikimoriFetch = new Elysia({
 	prefix: '/shikimori',
 	name: '@controller/shikimori'
 }).get('/fetch', async () => {
 	try {
-		const res = await fetch(
+		const items = await fetchShikimoriJson<RawShikimoriApiResponse[]>(
 			`${apiShikimoriGlobal}/api/animes?limit=50&order=popularity`
 		)
-		if (!res.ok) {
-			console.error('строка 49, парсер не сработал на популярные анимки')
-			return []
+
+		if (!items?.length) {
+			console.error('парсер не сработал на популярные анимки')
+			return { success: false, count: 0, failed: 0 }
 		}
-		const items: RawShikimoriApiResponse[] = await res.json()
 
 		const results = []
+		let failed = 0
+
 		for (const item of items) {
-			const animeData = {
-				shikimoriId: item.id,
-				myanimelistId: item.id,
-				anilistId: null /* kodik */,
-				anilibriaId: null /* kodik */,
-				kinopoiskId: null /* kodik */,
-				imdbId: null /* kodik */,
-				kodikId: null /* kodik */,
-				aksorId: null /* kodik */,
+			const detail = await fetchShikimoriJson<RawShikimoriApiDetail>(
+				`${apiShikimoriGlobal}/api/animes/${item.id}`
+			)
 
-				// Titles
-				nativeTitle: item.name,
-				russianTitle: item.russian,
-				englishTitle: item.name,
-
-				// Media
-				poster: item.image.original
-					? `${apiShikimoriGlobal}${item.image.original}`
-					: null,
-				banner: null /* anilist */,
-
-				// Description
-				description: item.description,
-				synonyms: [] /* kodik */,
-				note: null /* kodik */,
-				hashtag: null /* anilist  */,
-
-				// Enums
-				country: $Enums.AnimeCountry.JAPAN,
-				status: mapShikimoriStatus(item.status),
-				type: mapShikimoriKind(item.kind),
-				rating: $Enums.AnimeRating.SAFE,
-				season: null /* kodik */,
-
-				// Dates & episodes
-				year: item.aired_on
-					? new Date(item.aired_on).getFullYear()
-					: null,
-				airedOn: item.aired_on ? new Date(item.aired_on) : null,
-				releasedOn: item.released_on
-					? new Date(item.released_on)
-					: null,
-				nextEpisodeAt: null /* kodik */,
-				episodesCount: item.episodes,
-				episodesAired: item.episodes_aired,
-				duration: null /* kodik */,
-
-				// Ratings
-				shikimoriRating: parseFloat(item.score) || 0,
-				myanimelistRating: 0 /* kodik */,
-				anilistRating: 0 /* kodik */,
-				kinopoiskRating: 0 /* kodik */,
-				imdbRating: 0 /* kodik */,
-				averageRating: 0 /* kodik */,
-				bayesianRating: 0 /* kodik */,
-
-				// Flags
-				hasLgbt: false,
-				isCensored: false,
-				isDeleted: false
+			if (!detail) {
+				failed++
+				continue
 			}
+
+			const animeData = buildAnimeData(detail)
+			const genreTags = await upsertGenreTags(detail.genres ?? [])
+
 			const saved = await prisma.anime.upsert({
-				where: {
-					shikimoriId: item.id
+				where: { shikimoriId: item.id },
+				update: {
+					...animeData,
+					tags: { set: genreTags }
 				},
-				update: animeData,
-				create: { ...animeData, slug: item.id.toString() }
+				create: {
+					...animeData,
+					slug: item.id.toString(),
+					anilistId: null,
+					anilibriaId: null,
+					kinopoiskId: null,
+					imdbId: null,
+					kodikId: null,
+					aksorId: null,
+					banner: null,
+					note: null,
+					hashtag: null,
+					season: null,
+					nextEpisodeAt: null,
+					myanimelistRating: 0,
+					anilistRating: 0,
+					kinopoiskRating: 0,
+					imdbRating: 0,
+					averageRating: 0,
+					bayesianRating: 0,
+					hasLgbt: false,
+					tags: { connect: genreTags }
+				}
 			})
+
 			results.push(saved)
 		}
-		return { success: true, count: results.length }
+
+		return {
+			success: results.length > 0,
+			count: results.length,
+			failed,
+			total: items.length
+		}
 	} catch (e) {
-		console.error(`${e} строка 58`)
-		return []
+		console.error(`${e} — ошибка парсера Shikimori`)
+		return { success: false, count: 0, failed: 0 }
 	}
 })
+

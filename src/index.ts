@@ -5,7 +5,7 @@ import Elysia from 'elysia'
 import { betterAuthplugin, OpenAPI } from './lib/http/plugins/better-auth'
 import { UsersProfiles } from './controllers/auth/profile-get'
 import { ShikimoriFetch } from './controllers/parser-fetch'
-import { animeControllers, getAwayUser } from './controllers'
+import { animeControllers, getAwayUser, KodikParserLists } from './controllers'
 
 const app = new Elysia()
 	.use(
@@ -28,9 +28,9 @@ const app = new Elysia()
 
 	.use(UsersProfiles)
 	.use(cookie())
-	.get('/', () => 'host 3001 is work')
 	.listen(3001)
 	.use(ShikimoriFetch)
+	.use(KodikParserLists)
 	.use(getAwayUser)
 	.use(animeControllers)
 
