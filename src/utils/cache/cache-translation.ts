@@ -1,10 +1,13 @@
 import { KodikTranslationsResponse } from "../../@types/types/kodik.type";
-import { baseUrlKodikBz, KODIK_TOKEN } from "../../controllers";
+import { baseUrlKodikBz } from "../../controllers/parser-fetch/kodik-parser-fetch";
 
 let translationsCache: Map<number, string> | null = null;
 
 export async function loadTranslations(): Promise<Map<number, string>> {
   if (translationsCache) return translationsCache;
+
+  const KODIK_TOKEN = process.env.KODIK_TOKEN;
+  if (!KODIK_TOKEN) return new Map();
 
   try {
     const response = await fetch(

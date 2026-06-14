@@ -66,6 +66,52 @@ const buildAnimeData = (item: RawShikimoriApiDetail) => ({
 	isDeleted: false
 })
 
+const buildAnimeCreateDefaults = (shikimoriId: number) => ({
+	slug: shikimoriId.toString(),
+	anilistId: null,
+	anilibriaId: null,
+	kinopoiskId: null,
+	imdbId: null,
+	kodikId: null,
+	aksorId: null,
+	banner: null,
+	note: null,
+	hashtag: null,
+	season: null,
+	nextEpisodeAt: null,
+	myanimelistRating: 0,
+	anilistRating: 0,
+	kinopoiskRating: 0,
+	imdbRating: 0,
+	averageRating: 0,
+	bayesianRating: 0,
+	hasLgbt: false
+})
+
+export const upsertAnimeFromShikimori = async (shikimoriId: number) => {
+	const detail = await fetchShikimoriJson<RawShikimoriApiDetail>(
+		`${apiShikimoriGlobal}/api/animes/${shikimoriId}`
+	)
+
+	if (!detail) return null
+
+	const animeData = buildAnimeData(detail)
+	const genreTags = await upsertGenreTags(detail.genres ?? [])
+
+	return prisma.anime.upsert({
+		where: { shikimoriId },
+		update: {
+			...animeData,
+			tags: { set: genreTags }
+		},
+		create: {
+			...animeData,
+			...buildAnimeCreateDefaults(shikimoriId),
+			tags: { connect: genreTags }
+		}
+	})
+}
+
 export const ShikimoriFetch = new Elysia({
 	prefix: '/shikimori',
 	name: '@controller/shikimori'
@@ -84,48 +130,12 @@ export const ShikimoriFetch = new Elysia({
 		let failed = 0
 
 		for (const item of items) {
-			const detail = await fetchShikimoriJson<RawShikimoriApiDetail>(
-				`${apiShikimoriGlobal}/api/animes/${item.id}`
-			)
+			const saved = await upsertAnimeFromShikimori(item.id)
 
-			if (!detail) {
+			if (!saved) {
 				failed++
 				continue
 			}
-
-			const animeData = buildAnimeData(detail)
-			const genreTags = await upsertGenreTags(detail.genres ?? [])
-
-			const saved = await prisma.anime.upsert({
-				where: { shikimoriId: item.id },
-				update: {
-					...animeData,
-					tags: { set: genreTags }
-				},
-				create: {
-					...animeData,
-					slug: item.id.toString(),
-					anilistId: null,
-					anilibriaId: null,
-					kinopoiskId: null,
-					imdbId: null,
-					kodikId: null,
-					aksorId: null,
-					banner: null,
-					note: null,
-					hashtag: null,
-					season: null,
-					nextEpisodeAt: null,
-					myanimelistRating: 0,
-					anilistRating: 0,
-					kinopoiskRating: 0,
-					imdbRating: 0,
-					averageRating: 0,
-					bayesianRating: 0,
-					hasLgbt: false,
-					tags: { connect: genreTags }
-				}
-			})
 
 			results.push(saved)
 		}
@@ -141,4 +151,4 @@ export const ShikimoriFetch = new Elysia({
 		return { success: false, count: 0, failed: 0 }
 	}
 })
-
+
